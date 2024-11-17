@@ -56,13 +56,15 @@ if 1 <= custom <= len(curve_comp):
             ax.grid(True, which="both", linestyle="--", linewidth=0.5)
             
             # Save the plot as an SVG
-            # You can save the plot to a BytesIO buffer to display in Streamlit
             buf = BytesIO()
             fig.savefig(buf, format="svg")
             buf.seek(0)
 
+            # Read the content of the SVG file
+            svg_data = buf.getvalue().decode("utf-8")
+
             # Display the SVG in Streamlit
-            st.image(buf, use_column_width=True, output_format="SVG")
+            st.markdown(f'<div>{svg_data}</div>', unsafe_allow_html=True)
             
             plt.close(fig)  # Close the figure to avoid display issues
         else:
@@ -118,7 +120,10 @@ elif custom == 0:
             fig.savefig(buf, format="svg")
             buf.seek(0)
 
+            # Read the content of the SVG file
+            svg_data = buf.getvalue().decode("utf-8")
+
             # Display the SVG in Streamlit
-            st.image(buf, use_column_width=True, output_format="SVG")
+            st.markdown(f'<div>{svg_data}</div>', unsafe_allow_html=True)
             
             plt.close(fig)  # Close the figure to avoid display issues
