@@ -41,6 +41,7 @@ if 1 <= custom <= len(curve_comp):
 
     if st.button("Generate Curve"):
         if sn_curves_filtered:
+            # Create a figure and axis for plotting
             fig, ax = plt.subplots(figsize=(10, 6))
             for curve in sn_curves_filtered:
                 # Use the thickness value stored in session state for this curve
@@ -53,7 +54,17 @@ if 1 <= custom <= len(curve_comp):
             ax.set_title("S-N Curves")
             ax.legend()
             ax.grid(True, which="both", linestyle="--", linewidth=0.5)
-            st.pyplot(fig)
+            
+            # Save the plot as an SVG
+            # You can save the plot to a BytesIO buffer to display in Streamlit
+            buf = BytesIO()
+            fig.savefig(buf, format="svg")
+            buf.seek(0)
+
+            # Display the SVG in Streamlit
+            st.image(buf, use_column_width=True, output_format="SVG")
+            
+            plt.close(fig)  # Close the figure to avoid display issues
         else:
             st.error("No curves match your selection.")
 
@@ -101,4 +112,13 @@ elif custom == 0:
             ax.set_title("S-N Curves")
             ax.legend()
             ax.grid(True, which="both", linestyle="--", linewidth=0.5)
-            st.pyplot(fig)
+            
+            # Save the plot as an SVG
+            buf = BytesIO()
+            fig.savefig(buf, format="svg")
+            buf.seek(0)
+
+            # Display the SVG in Streamlit
+            st.image(buf, use_column_width=True, output_format="SVG")
+            
+            plt.close(fig)  # Close the figure to avoid display issues
