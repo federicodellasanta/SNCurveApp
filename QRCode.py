@@ -67,24 +67,32 @@ elif custom == 0:
         "Type the numbers corresponding to the S-N curves you want to display, separated by a space:"
     )
 
-    if st.button("Generate Custom Curves"):
-        try:
-            custom_indices = [int(x) - 1 for x in custom_list.split()]
-            custom_curves = [sn_curves[i] for i in custom_indices]
+    # If custom curves are selected, store them in session state
+    if custom_list:
+        custom_indices = [int(x) - 1 for x in custom_list.split()]
+        custom_curves = [sn_curves[i] for i in custom_indices]
+        
+        # Store thickness inputs dynamically based on custom curves selected
+        if "thickness_inputs" not in st.session_state:
+            st.session_state.thickness_inputs = {}
 
-            # Store thickness inputs dynamically based on custom curves selected
-            thickness_input = {}
-            for curve in custom_curves:
-                thickness_input[curve.name] = st.number_input(
-                    f"Enter the plate thickness (mm) for {curve.name}:",
-                    min_value=1, step=1,
-                    key=f"thickness_{curve.name}"  # Make the input unique using curve name
-                )
+        for curve in custom_curves:
+            if curve.name not in st.session_state.thickness_inputs:
+                st.session_state.thickness_inputs[curve.name] = 1  # Default value for thickness
 
+        # Display thickness inputs for selected custom curves
+        for curve in custom_curves:
+            st.session_state.thickness_inputs[curve.name] = st.number_input(
+                f"Enter the plate thickness (mm) for {curve.name}:",
+                min_value=1, step=1,
+                key=f"thickness_{curve.name}"  # Make the input unique using curve name
+            )
+
+        if st.button("Generate Custom Curves"):
             fig, ax = plt.subplots(figsize=(10, 6))
             for curve in custom_curves:
-                # Use the thickness value stored in session state for this curve
-                T_input = thickness_input[curve.name]
+                # Use the thickness value from session state
+                T_input = st.session_state.thickness_inputs[curve.name]
                 Nf_vals, S_vals = curve.generate_points(T_input)
                 ax.loglog(Nf_vals, S_vals, label=f"{curve.name} (T={int(T_input)} mm)")
 
@@ -94,5 +102,3 @@ elif custom == 0:
             ax.legend()
             ax.grid(True, which="both", linestyle="--", linewidth=0.5)
             st.pyplot(fig)
-        except ValueError:
-            st.error("Invalid input. Please enter valid numbers separated by spaces.")
