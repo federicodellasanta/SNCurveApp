@@ -42,42 +42,20 @@ if plot_type == "Guided Plot":
 
     # Standards and Environment Table
     st.markdown("### Select Standard and Environment")
-    st.write("Click any cell to filter curves.")
+    st.write("Click any cell to filter curves and see the plot.")
 
     # Filters
     active_filters = set()
 
-    def apply_filter(value):
-        if value in active_filters:
-            active_filters.remove(value)  # Toggle off
-        else:
-            active_filters.add(value)  # Toggle on
-
-    # Define Table Structure
-    rows = [
-        ["Air", "DNV 2021 Air", "DNV 2024 Air", "BS const Air", "BS var Air", "EC Air"],
-        ["Prot", "DNV 2021 Prot", "DNV 2024 Prot", "BS const Prot", "BS var Prot", ""],
-        ["Corr", "DNV 2021 Corr", "DNV 2024 Corr", "BS const Corr", "BS var Corr", ""],
-    ]
-
-    # Render Table
-    for row in rows:
-        cols = st.columns(len(row))
-        for idx, cell in enumerate(row):
-            if cell:  # Skip empty cells
-                if cols[idx].button(cell):
-                    apply_filter(cell)
-
-    # Apply Filters and Plot
-    if st.button("Apply Filters and Plot"):
+    def plot_filtered_curves():
         filtered_curves = sn_curves
 
-        # Filter curves based on selected filters
+        # Apply filters
         if active_filters:
             filtered_curves = [
                 curve
                 for curve in sn_curves
-                if any(filter_val.lower() in curve.name.lower() for filter_val in active_filters)
+                if all(filter_val.lower() in curve.name.lower() for filter_val in active_filters)
             ]
 
         if filtered_curves:
@@ -103,6 +81,29 @@ if plot_type == "Guided Plot":
         else:
             st.error("No curves match your selection.")
 
+    def apply_filter(value):
+        if value in active_filters:
+            active_filters.remove(value)  # Toggle off
+        else:
+            active_filters.add(value)  # Toggle on
+        plot_filtered_curves()
+
+    # Define Table Structure
+    table = [
+        ["DNV", "", "BS", "", "EC"],
+        ["2021", "2024", "const", "var", ""],
+        ["Air", "DNV 2021 Air", "DNV 2024 Air", "BS const Air", "BS var Air", "EC Air"],
+        ["Prot", "DNV 2021 Prot", "DNV 2024 Prot", "BS const Prot", "BS var Prot", ""],
+        ["Corr", "DNV 2021 Corr", "DNV 2024 Corr", "BS const Corr", "BS var Corr", ""],
+    ]
+
+    # Render Table
+    for row in table:
+        cols = st.columns(len(row))
+        for idx, cell in enumerate(row):
+            if cell:  # Skip empty cells
+                if cols[idx].button(cell):
+                    apply_filter(cell)
 
 elif plot_type == "Custom Plot":
     st.markdown("### Custom Plot Configuration")
