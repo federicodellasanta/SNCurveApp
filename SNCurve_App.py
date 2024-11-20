@@ -49,7 +49,7 @@ if 1 <= custom <= len(curve_comp):
                 Nf_vals, S_vals = curve.generate_points(T_input)
                 ax.loglog(Nf_vals, S_vals, label=f"{curve.name} (T={int(T_input)} mm)")
 
-            ax.set_xlabel("Fatigue Life (Cycles)")
+            ax.set_xlabel("Fatigue Life Nf (Cycles)")
             ax.set_ylabel("Stress Range (MPa)")
             ax.set_title("S-N Curves")
             ax.legend()
