@@ -4,108 +4,133 @@ import streamlit as st
 import numpy as np
 from io import BytesIO
 
-# Streamlit app
+# Introductory Section
 st.title("S-N Curve Analysis")
 
-# Dropdown for S-N curve comparison
-curve_comp = sn.curve_comp
-sn_curves = sn.sn_curves
-st.write("S-N curve comparison options:")
-for i, x in enumerate(curve_comp, 1):
-    st.write(f"{i}. {x}")
+st.markdown("### Acronyms")
+st.markdown("""
+- **Standards**:
+  - DNV-RP-C203-2021 (DNV 2021)
+  - DNV-RP-C203-2024 (DNV 2024)
+  - BS 7608:2014+A1:2015 under constant (BS const) or variable (BS var) amplitude loading
+  - EN 1993-1-9:2005:E (EC)
+- **Groove Types**:
+  - In as welded conditions (AW)
+  - Ground flush (GF)
+- **Environments**:
+  - Air
+  - Seawater with cathodic protection (prot)
+  - Seawater without cathodic protection (corr)
+""")
 
-# Custom selection logic
-custom = st.number_input(
-    "Type the number of the corresponding S-N curves you want to display, or type 0 for a customized comparison:", 
-    min_value=0, max_value=len(curve_comp), step=1
+# Dropdown for Plot Type Selection
+st.markdown("### Choose Plot Type")
+plot_type = st.radio("Select plot type:", ["Guided Plot", "Custom Plot"], horizontal=True)
+
+sn_curves = sn.sn_curves
+
+# Thickness input
+st.markdown("### Plate Thickness")
+plate_thickness = st.number_input(
+    "Enter the plate thickness (mm):", min_value=1, max_value=100, step=1, value=25
 )
 
-# Logic for predefined or custom selection
-if 1 <= custom <= len(curve_comp):
-    # Predefined selection
-    selected_comp = curve_comp[custom - 1]
-    keywords = selected_comp.split()
-    sn_curves_filtered = [
-        curve for curve in sn_curves 
-        if all(keyword in curve.name for keyword in keywords)
+if plot_type == "Guided Plot":
+    # Groove Type Selection
+    st.markdown("### Select Groove Type")
+    groove_type = st.radio("Choose groove type:", ["AW", "GF"], horizontal=True)
+
+    # Standards Table
+    st.markdown("### Select Standard and Environment")
+    st.write("Click a cell to filter curves.")
+    
+    # Create Table
+    envs = ["Air", "Prot", "Corr"]
+    standards = [
+        ["DNV 2021", "DNV 2024"],
+        ["BS const", "BS var"],
+        ["EC"]
     ]
-    
-    # Store plate thickness inputs using session state
-    thickness_input = {}
-    for curve in sn_curves_filtered:
-        thickness_input[curve.name] = st.number_input(
-            f"Enter the plate thickness (mm) for {curve.name}:",
-            min_value=1, step=1,
-            key=f"thickness_{curve.name}"  # Make the input unique using curve name
-        )
+    table = [[f"{std} {env}" for env in envs] for std in standards]
+    table[2] = ["EC Air", "EC Prot", "EC Corr"]  # Adjust for merged cells
 
-    if st.button("Generate Curve"):
-        if sn_curves_filtered:
-            # Create a figure and axis for plotting
-            fig, ax = plt.subplots(figsize=(10, 6))
-            for curve in sn_curves_filtered:
-                # Use the thickness value stored in session state for this curve
-                T_input = thickness_input[curve.name]
-                Nf_vals, S_vals = curve.generate_points(T_input)
-                ax.loglog(Nf_vals, S_vals, label=f"{curve.name} (T={int(T_input)} mm)")
-
-            ax.set_xlabel("Fatigue Life (Cycles)")
-            ax.set_ylabel("Stress Range (MPa)")
-            ax.set_title("S-N Curves")
-            ax.legend()
-            ax.grid(True, which="both", linestyle="--", linewidth=0.5)
-            
-            # Save the plot as an SVG
-            buf = BytesIO()
-            fig.savefig(buf, format="svg")
-            buf.seek(0)
-
-            # Read the content of the SVG file
-            svg_data = buf.getvalue().decode("utf-8")
-
-            # Display the SVG in Streamlit
-            st.markdown(f'<div>{svg_data}</div>', unsafe_allow_html=True)
-            
-            plt.close(fig)  # Close the figure to avoid display issues
-        else:
-            st.error("No curves match your selection.")
-
-elif custom == 0:
-    # Custom selection
-    st.write("Available S-N curves:")
-    for i, curve in enumerate(sn_curves, 1):
-        st.write(f"{i}. {curve.name}")
-    
-    custom_list = st.text_input(
-        "Type the numbers corresponding to the S-N curves you want to display, separated by a space:"
+    selected_cell = st.text_input(
+        "Select a cell by entering its label (e.g., 'DNV 2021 Air'):"
     )
 
-    # If custom curves are selected, store them in session state
-    if custom_list:
-        custom_indices = [int(x) - 1 for x in custom_list.split()]
-        custom_curves = [sn_curves[i] for i in custom_indices]
-        
-        # Store thickness inputs dynamically based on custom curves selected
-        if "thickness_inputs" not in st.session_state:
-            st.session_state.thickness_inputs = {}
+    if st.button("Generate Guided Plot"):
+        if selected_cell:
+            selected_curves = [
+                curve for curve in sn_curves 
+                if all(keyword in curve.name.lower() for keyword in selected_cell.lower().split())
+            ]
+            if selected_curves:
+                # Generate and Display Plot
+                fig, ax = plt.subplots(figsize=(10, 6))
+                for curve in selected_curves:
+                    Nf_vals, S_vals = curve.generate_points(plate_thickness)
+                    ax.loglog(Nf_vals, S_vals, label=f"{curve.name} (T={int(plate_thickness)} mm)")
 
-        for curve in custom_curves:
-            if curve.name not in st.session_state.thickness_inputs:
-                st.session_state.thickness_inputs[curve.name] = 1  # Default value for thickness
+                ax.set_xlabel("Fatigue Life (Cycles)")
+                ax.set_ylabel("Stress Range (MPa)")
+                ax.set_title("S-N Curves")
+                ax.legend()
+                ax.grid(True, which="both", linestyle="--", linewidth=0.5)
+                
+                # Save as SVG
+                buf = BytesIO()
+                fig.savefig(buf, format="svg")
+                buf.seek(0)
+                svg_data = buf.getvalue().decode("utf-8")
+                st.markdown(f'<div>{svg_data}</div>', unsafe_allow_html=True)
+                
+                plt.close(fig)
+            else:
+                st.error("No curves match your selection.")
 
-        # Display thickness inputs for selected custom curves
-        for curve in custom_curves:
-            st.session_state.thickness_inputs[curve.name] = st.number_input(
-                f"Enter the plate thickness (mm) for {curve.name}:",
-                min_value=1, step=1,
-                key=f"thickness_{curve.name}"  # Make the input unique using curve name
-            )
+elif plot_type == "Custom Plot":
+    # Tables for Custom Selection
+    st.markdown("### Custom Plot Configuration")
+    st.write("Select multiple curves from the tables below.")
 
-        if st.button("Generate Custom Curves"):
+    # Table for AW
+    st.markdown("#### AW Curves")
+    aw_curves = [
+        curve for curve in sn_curves if "aw" in curve.name.lower()
+    ]
+    selected_aw = st.multiselect(
+        "Select AW curves:",
+        options=[curve.name for curve in aw_curves]
+    )
+
+    # Table for GF
+    st.markdown("#### GF Curves")
+    gf_curves = [
+        curve for curve in sn_curves if "gf" in curve.name.lower()
+    ]
+    selected_gf = st.multiselect(
+        "Select GF curves:",
+        options=[curve.name for curve in gf_curves]
+    )
+
+    selected_curves = selected_aw + selected_gf
+
+    if selected_curves:
+        st.markdown("### Plate Thickness for Each Curve")
+        thickness_inputs = {
+            curve: st.number_input(
+                f"Enter thickness for {curve}:", 
+                min_value=1, max_value=100, step=1, value=plate_thickness
+            ) 
+            for curve in selected_curves
+        }
+
+        if st.button("Generate Custom Plot"):
+            # Generate and Display Plot
             fig, ax = plt.subplots(figsize=(10, 6))
-            for curve in custom_curves:
-                # Use the thickness value from session state
-                T_input = st.session_state.thickness_inputs[curve.name]
+            for curve_name in selected_curves:
+                curve = next(curve for curve in sn_curves if curve.name == curve_name)
+                T_input = thickness_inputs[curve_name]
                 Nf_vals, S_vals = curve.generate_points(T_input)
                 ax.loglog(Nf_vals, S_vals, label=f"{curve.name} (T={int(T_input)} mm)")
 
@@ -115,15 +140,11 @@ elif custom == 0:
             ax.legend()
             ax.grid(True, which="both", linestyle="--", linewidth=0.5)
             
-            # Save the plot as an SVG
+            # Save as SVG
             buf = BytesIO()
             fig.savefig(buf, format="svg")
             buf.seek(0)
-
-            # Read the content of the SVG file
             svg_data = buf.getvalue().decode("utf-8")
-
-            # Display the SVG in Streamlit
             st.markdown(f'<div>{svg_data}</div>', unsafe_allow_html=True)
             
-            plt.close(fig)  # Close the figure to avoid display issues
+            plt.close(fig)
