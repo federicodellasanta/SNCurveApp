@@ -40,53 +40,52 @@ if plot_type == "Guided Plot":
     st.markdown("### Select Groove Type")
     groove_type = st.radio("Choose groove type:", ["AW", "GF"], horizontal=True)
 
-    # Standards Table
+    # Standards Table with Buttons
     st.markdown("### Select Standard and Environment")
-    st.write("Click a cell to filter curves.")
-    
-    # Create Table
-    envs = ["Air", "Prot", "Corr"]
-    standards = [
-        ["DNV 2021", "DNV 2024"],
-        ["BS const", "BS var"],
-        ["EC"]
-    ]
-    table = [[f"{std} {env}" for env in envs] for std in standards]
-    table[2] = ["EC Air", "EC Prot", "EC Corr"]  # Adjust for merged cells
+    st.write("Click a button to filter curves.")
 
-    selected_cell = st.text_input(
-        "Select a cell by entering its label (e.g., 'DNV 2021 Air'):"
-    )
+    # Table Configuration
+    standards = ["DNV", "BS", "EC"]
+    versions = [["2021", "2024"], ["const", "var"], [""]]
+    environments = ["Air", "Prot", "Corr"]
 
-    if st.button("Generate Guided Plot"):
-        if selected_cell:
-            selected_curves = [
-                curve for curve in sn_curves 
-                if all(keyword in curve.name.lower() for keyword in selected_cell.lower().split())
-            ]
-            if selected_curves:
-                # Generate and Display Plot
-                fig, ax = plt.subplots(figsize=(10, 6))
-                for curve in selected_curves:
-                    Nf_vals, S_vals = curve.generate_points(plate_thickness)
-                    ax.loglog(Nf_vals, S_vals, label=f"{curve.name} (T={int(plate_thickness)} mm)")
+    # Table Rendering
+    for i, standard in enumerate(standards):
+        st.markdown(f"#### {standard}")
+        columns = st.columns(len(environments) if versions[i] else 1)
+        for j, version in enumerate(versions[i]):
+            for k, env in enumerate(environments):
+                with columns[k]:
+                    button_label = f"{standard} {version} {env}".strip()
+                    if st.button(button_label):
+                        # Apply filters based on button clicked
+                        selected_curves = [
+                            curve for curve in sn_curves
+                            if all(keyword in curve.name.lower() for keyword in [standard.lower(), version.lower(), env.lower(), groove_type.lower()])
+                        ]
+                        if selected_curves:
+                            # Generate and Display Plot
+                            fig, ax = plt.subplots(figsize=(10, 6))
+                            for curve in selected_curves:
+                                Nf_vals, S_vals = curve.generate_points(plate_thickness)
+                                ax.loglog(Nf_vals, S_vals, label=f"{curve.name} (T={int(plate_thickness)} mm)")
 
-                ax.set_xlabel("Fatigue Life (Cycles)")
-                ax.set_ylabel("Stress Range (MPa)")
-                ax.set_title("S-N Curves")
-                ax.legend()
-                ax.grid(True, which="both", linestyle="--", linewidth=0.5)
-                
-                # Save as SVG
-                buf = BytesIO()
-                fig.savefig(buf, format="svg")
-                buf.seek(0)
-                svg_data = buf.getvalue().decode("utf-8")
-                st.markdown(f'<div>{svg_data}</div>', unsafe_allow_html=True)
-                
-                plt.close(fig)
-            else:
-                st.error("No curves match your selection.")
+                            ax.set_xlabel("Fatigue Life (Cycles)")
+                            ax.set_ylabel("Stress Range (MPa)")
+                            ax.set_title("S-N Curves")
+                            ax.legend()
+                            ax.grid(True, which="both", linestyle="--", linewidth=0.5)
+
+                            # Save as SVG
+                            buf = BytesIO()
+                            fig.savefig(buf, format="svg")
+                            buf.seek(0)
+                            svg_data = buf.getvalue().decode("utf-8")
+                            st.markdown(f'<div>{svg_data}</div>', unsafe_allow_html=True)
+                            
+                            plt.close(fig)
+                        else:
+                            st.error("No curves match your selection.")
 
 elif plot_type == "Custom Plot":
     # Tables for Custom Selection
