@@ -46,64 +46,80 @@ if plot_type == "Guided Plot":
 
     # Table Data
     standards = ["DNV", "BS", "EC"]
-    versions = [["2021", "2024"], ["const", "var"], [""]]  # Empty cell for EC
+    versions = ["2021", "2024", "const", "var", ""]  # Last cell empty for merged EC
     environments = ["Air", "Prot", "Corr"]
 
-    # Create Table as a Grid
-    grid = [[""] + standards]
-    grid.append([""] + [" / ".join(versions[i]) if versions[i] else "" for i in range(len(standards))])
+    # Filters
+    active_filters = {"standard": None, "version": None, "environment": None}
+
+    def apply_filter(key, value):
+        if active_filters[key] == value:
+            active_filters[key] = None  # Toggle off
+        else:
+            active_filters[key] = value  # Toggle on
+
+    # Table Rows
+    header_row = st.columns(len(standards) + 1)
+    header_row[0].markdown("")  # Empty top-left cell
+    for idx, standard in enumerate(standards):
+        if header_row[idx + 1].button(standard):
+            apply_filter("standard", standard)
+
+    second_row = st.columns(len(versions) + 1)
+    second_row[0].markdown("")  # Empty cell for left column
+    for idx, version in enumerate(versions):
+        if idx == len(versions) - 1:  # Merge the last column for EC
+            second_row[idx + 1].markdown("**EC**", unsafe_allow_html=True)
+        elif second_row[idx + 1].button(version):
+            apply_filter("version", version)
+
+    # Main Rows (Environment Rows)
     for env in environments:
-        row = [env]
-        for i, standard in enumerate(standards):
-            if versions[i]:
-                for version in versions[i]:
-                    row.append(f"{standard} {version} {env}".strip())
-            else:
-                row.append(f"{standard} {env}".strip())  # EC has no version
-        grid.append(row)
+        row = st.columns(len(standards) + 1)
+        row[0].markdown(f"**{env}**")  # First column: environment
+        for idx, standard in enumerate(standards):
+            if versions[idx]:  # Only create cells for standards with versions
+                for version in versions[:len(versions) - 1]:  # Exclude the merged EC cell
+                    curve_filter = f"{standard} {version} {env} {groove_type}"
+                    if row[idx + 1].button(f"{standard} {version} {env}"):
+                        apply_filter("environment", curve_filter)
+            else:  # Handle EC (no versions)
+                curve_filter = f"{standard} {env} {groove_type}"
+                if row[idx + 1].button(f"{standard} {env}"):
+                    apply_filter("environment", curve_filter)
 
-    # Render Table with Buttons
-    for row_idx, row in enumerate(grid):
-        cols = st.columns(len(row))
-        for col_idx, cell in enumerate(row):
-            if row_idx == 0:  # Header row
-                cols[col_idx].markdown(f"**{cell}**")
-            elif row_idx == 1:  # Versions
-                cols[col_idx].markdown(f"*{cell}*" if cell else "")
-            else:  # Environment rows
-                if col_idx == 0:
-                    cols[col_idx].markdown(f"**{cell}**")
-                else:
-                    if cell:  # Only create a button for valid cells
-                        if cols[col_idx].button(cell):
-                            # Apply filters and generate plot
-                            filters = cell.split()
-                            selected_curves = [
-                                curve for curve in sn_curves
-                                if all(keyword.lower() in curve.name.lower() for keyword in filters + [groove_type.lower()])
-                            ]
-                            if selected_curves:
-                                fig, ax = plt.subplots(figsize=(10, 6))
-                                for curve in selected_curves:
-                                    Nf_vals, S_vals = curve.generate_points(plate_thickness)
-                                    ax.loglog(Nf_vals, S_vals, label=f"{curve.name} (T={int(plate_thickness)} mm)")
+    # Filter and Display Matching Curves
+    if st.button("Apply Filters and Plot"):
+        filtered_curves = sn_curves
+        for key, filter_val in active_filters.items():
+            if filter_val:
+                filtered_curves = [
+                    curve for curve in filtered_curves
+                    if filter_val.lower() in curve.name.lower()
+                ]
 
-                                ax.set_xlabel("Fatigue Life (Cycles)")
-                                ax.set_ylabel("Stress Range (MPa)")
-                                ax.set_title("S-N Curves")
-                                ax.legend()
-                                ax.grid(True, which="both", linestyle="--", linewidth=0.5)
+        if filtered_curves:
+            fig, ax = plt.subplots(figsize=(10, 6))
+            for curve in filtered_curves:
+                Nf_vals, S_vals = curve.generate_points(plate_thickness)
+                ax.loglog(Nf_vals, S_vals, label=f"{curve.name} (T={int(plate_thickness)} mm)")
 
-                                # Save as SVG
-                                buf = BytesIO()
-                                fig.savefig(buf, format="svg")
-                                buf.seek(0)
-                                svg_data = buf.getvalue().decode("utf-8")
-                                st.markdown(f'<div>{svg_data}</div>', unsafe_allow_html=True)
+            ax.set_xlabel("Fatigue Life (Cycles)")
+            ax.set_ylabel("Stress Range (MPa)")
+            ax.set_title("S-N Curves")
+            ax.legend()
+            ax.grid(True, which="both", linestyle="--", linewidth=0.5)
 
-                                plt.close(fig)
-                            else:
-                                st.error("No curves match your selection.")
+            # Save as SVG
+            buf = BytesIO()
+            fig.savefig(buf, format="svg")
+            buf.seek(0)
+            svg_data = buf.getvalue().decode("utf-8")
+            st.markdown(f'<div>{svg_data}</div>', unsafe_allow_html=True)
+
+            plt.close(fig)
+        else:
+            st.error("No curves match your selection.")
 
 elif plot_type == "Custom Plot":
     st.markdown("### Custom Plot Configuration")
