@@ -90,8 +90,8 @@ if plot_type == "Guided Plot":
 
     # Define Table Structure
     table = [
-        ["DNV", "", "BS", "", "EC"],
-        ["2021", "2024", "const", "var", ""],
+        ["", "DNV", "", "BS", "", "EC"],
+        ["", "2021", "2024", "const", "var", ""],
         ["Air", "DNV 2021 Air", "DNV 2024 Air", "BS const Air", "BS var Air", "EC Air"],
         ["Prot", "DNV 2021 Prot", "DNV 2024 Prot", "BS const Prot", "BS var Prot", ""],
         ["Corr", "DNV 2021 Corr", "DNV 2024 Corr", "BS const Corr", "BS var Corr", ""],
