@@ -19,8 +19,8 @@ st.markdown("""
   - Ground flush (GF)
 - **Environments**:
   - Air
-  - Seawater with cathodic protection (prot)
-  - Seawater without cathodic protection (corr)
+  - Seawater with cathodic protection (Prot)
+  - Seawater without cathodic protection (Corr)
 """)
 
 # Dropdown for Plot Type Selection
@@ -50,13 +50,15 @@ if plot_type == "Guided Plot":
     def plot_filtered_curves():
         filtered_curves = sn_curves
 
+        # Combine groove type with filters
+        combined_filters = list(active_filters) + [groove_type]
+
         # Apply filters
-        if active_filters:
-            filtered_curves = [
-                curve
-                for curve in sn_curves
-                if all(filter_val.lower() in curve.name.lower() for filter_val in active_filters)
-            ]
+        filtered_curves = [
+            curve
+            for curve in sn_curves
+            if all(filter_val.lower() in curve.name.lower() for filter_val in combined_filters)
+        ]
 
         if filtered_curves:
             fig, ax = plt.subplots(figsize=(10, 6))
@@ -82,11 +84,10 @@ if plot_type == "Guided Plot":
             st.error("No curves match your selection.")
 
     def apply_filter(value):
-        if value in active_filters:
-            active_filters.remove(value)  # Toggle off
-        else:
-            active_filters.add(value)  # Toggle on
-        plot_filtered_curves()
+        # Split value into individual components (e.g., "DNV 2021 Air" -> ["DNV", "2021", "Air"])
+        split_values = [v.strip() for v in value.split()]
+        active_filters.update(split_values)  # Add filters
+        plot_filtered_curves()  # Trigger plot
 
     # Define Table Structure
     table = [
@@ -104,7 +105,7 @@ if plot_type == "Guided Plot":
             if cell:  # Skip empty cells
                 if cols[idx].button(cell):
                     apply_filter(cell)
-
+                  
 elif plot_type == "Custom Plot":
     st.markdown("### Custom Plot Configuration")
     st.write("Select multiple curves from the tables below.")
