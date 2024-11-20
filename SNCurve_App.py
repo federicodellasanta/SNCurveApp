@@ -44,59 +44,41 @@ if plot_type == "Guided Plot":
     st.markdown("### Select Standard and Environment")
     st.write("Click any cell to filter curves.")
 
-    # Table Data
-    standards = ["DNV", "BS", "EC"]
-    versions = ["2021", "2024", "const", "var", ""]  # Last cell empty for merged EC
-    environments = ["Air", "Prot", "Corr"]
-
     # Filters
-    active_filters = {"standard": None, "version": None, "environment": None}
+    active_filters = set()
 
-    def apply_filter(key, value):
-        if active_filters[key] == value:
-            active_filters[key] = None  # Toggle off
+    def apply_filter(value):
+        if value in active_filters:
+            active_filters.remove(value)  # Toggle off
         else:
-            active_filters[key] = value  # Toggle on
+            active_filters.add(value)  # Toggle on
 
-    # Table Rows
-    header_row = st.columns(len(standards) + 1)
-    header_row[0].markdown("")  # Empty top-left cell
-    for idx, standard in enumerate(standards):
-        if header_row[idx + 1].button(standard):
-            apply_filter("standard", standard)
+    # Define Table Structure
+    rows = [
+        ["Air", "DNV 2021 Air", "DNV 2024 Air", "BS const Air", "BS var Air", "EC Air"],
+        ["Prot", "DNV 2021 Prot", "DNV 2024 Prot", "BS const Prot", "BS var Prot", ""],
+        ["Corr", "DNV 2021 Corr", "DNV 2024 Corr", "BS const Corr", "BS var Corr", ""],
+    ]
 
-    second_row = st.columns(len(versions) + 1)
-    second_row[0].markdown("")  # Empty cell for left column
-    for idx, version in enumerate(versions):
-        if idx == len(versions) - 1:  # Merge the last column for EC
-            second_row[idx + 1].markdown("**EC**", unsafe_allow_html=True)
-        elif second_row[idx + 1].button(version):
-            apply_filter("version", version)
+    # Render Table
+    for row in rows:
+        cols = st.columns(len(row))
+        for idx, cell in enumerate(row):
+            if cell:  # Skip empty cells
+                if cols[idx].button(cell):
+                    apply_filter(cell)
 
-    # Main Rows (Environment Rows)
-    for env in environments:
-        row = st.columns(len(standards) + 1)
-        row[0].markdown(f"**{env}**")  # First column: environment
-        for idx, standard in enumerate(standards):
-            if versions[idx]:  # Only create cells for standards with versions
-                for version in versions[:len(versions) - 1]:  # Exclude the merged EC cell
-                    curve_filter = f"{standard} {version} {env} {groove_type}"
-                    if row[idx + 1].button(f"{standard} {version} {env}"):
-                        apply_filter("environment", curve_filter)
-            else:  # Handle EC (no versions)
-                curve_filter = f"{standard} {env} {groove_type}"
-                if row[idx + 1].button(f"{standard} {env}"):
-                    apply_filter("environment", curve_filter)
-
-    # Filter and Display Matching Curves
+    # Apply Filters and Plot
     if st.button("Apply Filters and Plot"):
         filtered_curves = sn_curves
-        for key, filter_val in active_filters.items():
-            if filter_val:
-                filtered_curves = [
-                    curve for curve in filtered_curves
-                    if filter_val.lower() in curve.name.lower()
-                ]
+
+        # Filter curves based on selected filters
+        if active_filters:
+            filtered_curves = [
+                curve
+                for curve in sn_curves
+                if any(filter_val.lower() in curve.name.lower() for filter_val in active_filters)
+            ]
 
         if filtered_curves:
             fig, ax = plt.subplots(figsize=(10, 6))
@@ -120,6 +102,7 @@ if plot_type == "Guided Plot":
             plt.close(fig)
         else:
             st.error("No curves match your selection.")
+
 
 elif plot_type == "Custom Plot":
     st.markdown("### Custom Plot Configuration")
