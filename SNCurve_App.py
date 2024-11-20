@@ -19,8 +19,8 @@ st.markdown("""
   - Ground flush (GF)
 - **Environments**:
   - Air
-  - Seawater with cathodic protection (Prot)
-  - Seawater without cathodic protection (Corr)
+  - Seawater with cathodic protection (prot)
+  - Seawater without cathodic protection (corr)
 """)
 
 # Dropdown for Plot Type Selection
@@ -82,46 +82,28 @@ if plot_type == "Guided Plot":
             st.error("No curves match your selection.")
 
     def apply_filter(value):
-        if isinstance(value, str):
-            value = [v.strip() for v in value.split()]  # Split into list of filters
-        value.append(groove_type)  # Add AW or GF filter
-        active_filters.update(value)  # Update filters
+        if value in active_filters:
+            active_filters.remove(value)  # Toggle off
+        else:
+            active_filters.add(value)  # Toggle on
         plot_filtered_curves()
 
     # Define Table Structure
-    headers = ["", "DNV", "", "BS", "", "EC"]
-    sub_headers = ["", "2021", "2024", "const", "var", ""]
     table = [
+        ["DNV", "", "BS", "", "EC"],
+        ["2021", "2024", "const", "var", ""],
         ["Air", "DNV 2021 Air", "DNV 2024 Air", "BS const Air", "BS var Air", "EC Air"],
         ["Prot", "DNV 2021 Prot", "DNV 2024 Prot", "BS const Prot", "BS var Prot", ""],
         ["Corr", "DNV 2021 Corr", "DNV 2024 Corr", "BS const Corr", "BS var Corr", ""],
     ]
 
-    # Render Headers
-    col_widths = [2, 6, 6, 8, 8, 4]  # Adjust widths to align groups
-    header_cols = st.columns(col_widths)
-    for idx, cell in enumerate(headers):
-        if cell:  # Render button for non-empty cells
-            header_cols[idx].button(cell, key=f"header_{cell}", on_click=apply_filter, args=(cell,))
-
-    # Render Sub-Headers
-    sub_header_cols = st.columns(col_widths)
-    for idx, cell in enumerate(sub_headers):
-        if cell:  # Render button for non-empty cells
-            sub_header_cols[idx].button(cell, key=f"subheader_{cell}", on_click=apply_filter, args=(cell,))
-
     # Render Table
-    for row_idx, row in enumerate(table):
-        row_cols = st.columns(col_widths)
-        for col_idx, cell in enumerate(row):
-            if cell:  # Render button for non-empty cells
-                row_cols[col_idx].button(
-                    cell,
-                    key=f"cell_{row_idx}_{col_idx}",
-                    on_click=apply_filter,
-                    args=(cell,),
-                    help=f"Filters: {cell}"
-                )
+    for row in table:
+        cols = st.columns(len(row))
+        for idx, cell in enumerate(row):
+            if cell:  # Skip empty cells
+                if cols[idx].button(cell):
+                    apply_filter(cell)
 
 elif plot_type == "Custom Plot":
     st.markdown("### Custom Plot Configuration")
