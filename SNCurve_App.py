@@ -19,8 +19,8 @@ st.markdown("""
   - Ground flush (GF)
 - **Environments**:
   - Air
-  - Seawater with cathodic protection (prot)
-  - Seawater without cathodic protection (corr)
+  - Seawater with cathodic protection (Prot)
+  - Seawater without cathodic protection (Corr)
 """)
 
 # Dropdown for Plot Type Selection
@@ -42,61 +42,21 @@ if plot_type == "Guided Plot":
 
     # Standards and Environment Table
     st.markdown("### Select Standard and Environment")
-    st.write("Click any cell to filter curves.")
-
-    # Table Data
-    standards = ["DNV", "BS", "EC"]
-    versions = ["2021", "2024", "const", "var", ""]  # Last cell empty for merged EC
-    environments = ["Air", "Prot", "Corr"]
+    st.write("Click any cell to filter curves and see the plot.")
 
     # Filters
-    active_filters = {"standard": None, "version": None, "environment": None}
+    active_filters = set()
 
-    def apply_filter(key, value):
-        if active_filters[key] == value:
-            active_filters[key] = None  # Toggle off
-        else:
-            active_filters[key] = value  # Toggle on
-
-    # Table Rows
-    header_row = st.columns(len(standards) + 1)
-    header_row[0].markdown("")  # Empty top-left cell
-    for idx, standard in enumerate(standards):
-        if header_row[idx + 1].button(standard):
-            apply_filter("standard", standard)
-
-    second_row = st.columns(len(versions) + 1)
-    second_row[0].markdown("")  # Empty cell for left column
-    for idx, version in enumerate(versions):
-        if idx == len(versions) - 1:  # Merge the last column for EC
-            second_row[idx + 1].markdown("**EC**", unsafe_allow_html=True)
-        elif second_row[idx + 1].button(version):
-            apply_filter("version", version)
-
-    # Main Rows (Environment Rows)
-    for env in environments:
-        row = st.columns(len(standards) + 1)
-        row[0].markdown(f"**{env}**")  # First column: environment
-        for idx, standard in enumerate(standards):
-            if versions[idx]:  # Only create cells for standards with versions
-                for version in versions[:len(versions) - 1]:  # Exclude the merged EC cell
-                    curve_filter = f"{standard} {version} {env} {groove_type}"
-                    if row[idx + 1].button(f"{standard} {version} {env}"):
-                        apply_filter("environment", curve_filter)
-            else:  # Handle EC (no versions)
-                curve_filter = f"{standard} {env} {groove_type}"
-                if row[idx + 1].button(f"{standard} {env}"):
-                    apply_filter("environment", curve_filter)
-
-    # Filter and Display Matching Curves
-    if st.button("Apply Filters and Plot"):
+    def plot_filtered_curves():
         filtered_curves = sn_curves
-        for key, filter_val in active_filters.items():
-            if filter_val:
-                filtered_curves = [
-                    curve for curve in filtered_curves
-                    if filter_val.lower() in curve.name.lower()
-                ]
+
+        # Apply filters
+        if active_filters:
+            filtered_curves = [
+                curve
+                for curve in sn_curves
+                if all(filter_val.lower() in curve.name.lower() for filter_val in active_filters)
+            ]
 
         if filtered_curves:
             fig, ax = plt.subplots(figsize=(10, 6))
@@ -120,6 +80,48 @@ if plot_type == "Guided Plot":
             plt.close(fig)
         else:
             st.error("No curves match your selection.")
+
+    def apply_filter(value):
+        if isinstance(value, str):
+            value = [v.strip() for v in value.split()]  # Split into list of filters
+        value.append(groove_type)  # Add AW or GF filter
+        active_filters.update(value)  # Update filters
+        plot_filtered_curves()
+
+    # Define Table Structure
+    headers = ["", "DNV", "", "BS", "", "EC"]
+    sub_headers = ["", "2021", "2024", "const", "var", ""]
+    table = [
+        ["Air", "DNV 2021 Air", "DNV 2024 Air", "BS const Air", "BS var Air", "EC Air"],
+        ["Prot", "DNV 2021 Prot", "DNV 2024 Prot", "BS const Prot", "BS var Prot", ""],
+        ["Corr", "DNV 2021 Corr", "DNV 2024 Corr", "BS const Corr", "BS var Corr", ""],
+    ]
+
+    # Render Headers
+    col_widths = [2, 6, 6, 8, 8, 4]  # Adjust widths to align groups
+    header_cols = st.columns(col_widths)
+    for idx, cell in enumerate(headers):
+        if cell:  # Render button for non-empty cells
+            header_cols[idx].button(cell, key=f"header_{cell}", on_click=apply_filter, args=(cell,))
+
+    # Render Sub-Headers
+    sub_header_cols = st.columns(col_widths)
+    for idx, cell in enumerate(sub_headers):
+        if cell:  # Render button for non-empty cells
+            sub_header_cols[idx].button(cell, key=f"subheader_{cell}", on_click=apply_filter, args=(cell,))
+
+    # Render Table
+    for row_idx, row in enumerate(table):
+        row_cols = st.columns(col_widths)
+        for col_idx, cell in enumerate(row):
+            if cell:  # Render button for non-empty cells
+                row_cols[col_idx].button(
+                    cell,
+                    key=f"cell_{row_idx}_{col_idx}",
+                    on_click=apply_filter,
+                    args=(cell,),
+                    help=f"Filters: {cell}"
+                )
 
 elif plot_type == "Custom Plot":
     st.markdown("### Custom Plot Configuration")
