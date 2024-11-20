@@ -98,26 +98,12 @@ if plot_type == "Guided Plot":
         ["Corr", "DNV 2021 Corr", "DNV 2024 Corr", "BS const Corr", "BS var Corr", ""],
     ]
 
-    # Render Table with merged cells and adjusted widths
-    # Row 1 (with the wide "DNV" and "BS" buttons)
-    cols = st.columns([2, 2, 1, 2, 1, 2])  # Adjusted column widths for the first row
-    cols[1].button("DNV", key="DNV")  # First button: DNV
-    cols[3].button("BS", key="BS")  # Second button: BS
-    cols[5].button("EC", key="EC")  # Third button: EC
-
-    # Row 2 (with standard options)
-    cols = st.columns([2, 2, 2, 2, 2, 2])  # Make second row buttons equal in width
-    cols[1].button("2021", key="2021")
-    cols[2].button("2024", key="2024")
-    cols[3].button("const", key="const")
-    cols[4].button("var", key="var")
-
-    # Subsequent rows (environments and combinations)
-    for i, row in enumerate(table[2:]):
-        cols = st.columns([2, 2, 2, 2, 2, 2])
-        for j, cell in enumerate(row):
+    # Render Table
+    for row in table:
+        cols = st.columns(len(row))
+        for idx, cell in enumerate(row):
             if cell:  # Skip empty cells
-                if cols[j].button(cell, key=cell):
+                if cols[idx].button(cell):
                     apply_filter(cell)
                   
 elif plot_type == "Custom Plot":
