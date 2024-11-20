@@ -19,8 +19,8 @@ st.markdown("""
   - Ground flush (GF)
 - **Environments**:
   - Air
-  - Seawater with cathodic protection (prot)
-  - Seawater without cathodic protection (corr)
+  - Seawater with cathodic protection (Prot)
+  - Seawater without cathodic protection (Corr)
 """)
 
 # Dropdown for Plot Type Selection
@@ -98,9 +98,7 @@ if plot_type == "Guided Plot":
     ]
 
     # Render Headers
-    col_widths = [2, 4, 4, 6, 6, 4]  # Adjust widths to align groups
-    col_height = [2.5, 2.5, 2.5, 2.5, 2.5, 2.5]
-
+    col_widths = [2, 6, 6, 8, 8, 4]  # Adjust widths to align groups
     header_cols = st.columns(col_widths)
     for idx, cell in enumerate(headers):
         if cell:  # Render button for non-empty cells
@@ -113,12 +111,17 @@ if plot_type == "Guided Plot":
             sub_header_cols[idx].button(cell, key=f"subheader_{cell}", on_click=apply_filter, args=(cell,))
 
     # Render Table
-    for row in table:
+    for row_idx, row in enumerate(table):
         row_cols = st.columns(col_widths)
-        for idx, cell in enumerate(row):
+        for col_idx, cell in enumerate(row):
             if cell:  # Render button for non-empty cells
-                row_cols[idx].button(cell, key=f"cell_{cell}", on_click=apply_filter, args=(cell,))
-
+                row_cols[col_idx].button(
+                    cell,
+                    key=f"cell_{row_idx}_{col_idx}",
+                    on_click=apply_filter,
+                    args=(cell,),
+                    help=f"Filters: {cell}"
+                )
 
 elif plot_type == "Custom Plot":
     st.markdown("### Custom Plot Configuration")
