@@ -232,8 +232,8 @@ sn_curves = [
             q_list=[12.164, 15.807, 1.561], m_list=[3, 5, 0], 
             c=0.2, breakpoints=[5e6, 1e8]),
     SNCurve(name="SLIC AW air", 
-            q_list=[12.786], m_list=[3.37], 
-            c=0)
+            q_list=[12.934], m_list=[3.37], 
+            c=0.2, teff=True)
 ]
 
 # S-N curves comparisons
